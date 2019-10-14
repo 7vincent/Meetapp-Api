@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
-//vem da lib do node, serve para fazer async aweit em metodos mais antigos
-import { pormisify, promisify } from "util";
+import { promisify } from "util";
 
 import authConfig from "../../config/auth";
 
