@@ -1,17 +1,20 @@
 import * as Yup from "yup";
+import { parseISO, isBefore, isAfter } from "date-fns";
 import Meetup from "../models/Meetup";
 
 class MeetupController {
-  //list
-  async index(req, res) {
-    const meetup = await Meetup.findAll();
+  //listagem das meetups do organizador
+  async myMeetups(req, res) {
+    const meetup = await Meetup.findAll({
+      where: {
+        user_id: req.userId
+      }
+    });
 
     return res.json(meetup);
   }
 
-  //todo metodo dos controller são em tese meddleare
   async store(req, res) {
-    //criando o schema para validar dados com o Yup
     const schema = Yup.object().shape({
       title: Yup.string().required(),
       description: Yup.string().required(),
@@ -22,71 +25,95 @@ class MeetupController {
 
     //validando a requisição
     if (!(await schema.isValid(req.body))) {
-      return res.status(401).json({ error: "Dados inválidos" });
+      return res.status(401).json({
+        error: "Todos os dados são obrigatórios, verifique se tem algum errado."
+      });
     }
+
+    //validando se meetup tem data posterior a hj
+    const parsedDate = parseISO(req.body.date);
+    //12 - 16
+    if (isBefore(parsedDate, new Date())) {
+      return res.status(401).json({ error: "Data já passou, inválida!" });
+    }
+
     const meetup = await Meetup.create(req.body);
 
     return res.json(meetup);
-    /*
-    const userExist = await User.findOne({ where: { email: req.body.email } });
-
-    if (userExist) {
-      return res.status(400).json({ error: "Esse email já esta cadastrado" });
-    }
-
-    const user = await User.create(req.body);
-
-    return res.json(user);
-    */
   }
 
   async update(req, res) {
-    //criando o schema para validar dados com o Yup
+    //pode editar: quem ele é organizador e que não passou a data
+
     const schema = Yup.object().shape({
-      name: Yup.string(),
-      email: Yup.string().email(),
-      oldPassword: Yup.string().min(6),
-      password: Yup.string()
-        .min(6)
-        //vamos aqui ver se ele quer trocar de senha,
-        //o when te acesso a todos os dados da schema. field = password
-        .when("oldPassword", (oldPassword, field) =>
-          oldPassword ? field.required() : field
-        ),
-      //vamos pedir aqui que se o password for digitado, um confirmPassword
-      //deve ser preenchido igualmente
-      confirmPassword: Yup.string().when("password", (password, field) =>
-        password ? field.required().oneOf([Yup.ref("password")]) : field
-      )
+      title: Yup.string().required(),
+      description: Yup.string().required(),
+      location: Yup.string().required(),
+      date: Yup.date().required()
     });
 
     //validando a requisição
     if (!(await schema.isValid(req.body))) {
-      return res.status(401).json({ error: "Dados inválidos" });
+      return res.status(401).json({
+        error: "Todos os dados são obrigatórios, verifique se tem algum errado."
+      });
     }
 
-    const { email, oldPassword } = req.body;
-
-    const user = await User.findByPk(req.userId);
-
-    //verificar se o email que foi enviado existe no banco, para
-    //saber se é um user válido
-    if (email != user.email) {
-      const userExist = await User.findOne({ where: { email } });
-      //verificando se o email que a pessoa mudou, já existe no sistema
-      if (userExist) {
-        return res.status(400).json({ error: "Esse email já esta cadastrado" });
+    //verificando se user é dono do meetup
+    const meetup = await Meetup.findOne({
+      where: {
+        user_id: req.userId,
+        id: req.body.id
       }
-    }
-    //verificar se o user quer mudar a senha e se a senha anterior é válda
-    if (oldPassword && !(await user.checkPassword(oldPassword))) {
-      return res.status(401).json({ error: "Password Invalido" });
+    });
+    //return res.json(meetup);
+    if (!meetup) {
+      return res.status(400).json({
+        error: "Meetap não encontrado ou você não é dono desse meetup!"
+      });
     }
 
-    //vamos agora efetivamente atualizar o user
-    const userAtualizado = await user.update(req.body);
+    //validando se meetup ja aconteceu ou não, se já, não pode editar
+    const { date } = meetup; // 2019-10-17
+    if (isBefore(date, new Date())) {
+      return res
+        .status(401)
+        .json({ error: "Data já passou, este meetup não pode ser editado." });
+    }
 
-    return res.json(userAtualizado);
+    //vamos agora efetivamente atualizar o meetup
+    const meetupAtualizado = await meetup.update(req.body);
+
+    return res.json(meetupAtualizado);
+  }
+
+  async delete(req, res) {
+    //validar se o meetup é do user logado
+    //verificando se user é dono do meetup
+    const meetup = await Meetup.findOne({
+      where: {
+        user_id: req.userId,
+        id: req.body.id
+      }
+    });
+
+    if (!meetup) {
+      return res.status(400).json({
+        error: "Meetap não encontrado ou você não é dono desse meetup!"
+      });
+    }
+    //validando se meetup ja aconteceu ou não
+    const { date } = meetup; // 2019-10-17
+    if (isBefore(date, new Date())) {
+      return res
+        .status(401)
+        .json({ error: "Data já passou, este meetup não pode ser deletado." });
+    }
+
+    //vamos agora efetivamente deletar o meetup
+    await meetup.destroy(req.body.id);
+
+    return res.json("true");
   }
 }
 

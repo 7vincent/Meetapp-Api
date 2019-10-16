@@ -10,6 +10,14 @@ class FileController {
     });
     return res.json(file);
   }
+  /*
+  Apenas para vizualização no dev
+  */
+  async index(req, res) {
+    const files = await File.findAll();
+
+    return res.json(files);
+  }
 }
 
 export default new FileController();
