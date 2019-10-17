@@ -14,7 +14,8 @@ class User extends Model {
         password_hash: Sequelize.STRING
       },
       {
-        sequelize
+        sequelize,
+        tableName: "users"
       }
     );
 
@@ -36,6 +37,14 @@ class User extends Model {
 
     //retornar o model que acabou de ser inicializado
     return this;
+  }
+
+  static associate(models) {
+    this.belongsToMany(models.Meetup, {
+      foreignKey: "user_id",
+      through: "subscription",
+      as: "meetups"
+    });
   }
 
   checkPassword(password) {

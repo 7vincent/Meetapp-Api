@@ -1,5 +1,5 @@
 import * as Yup from "yup";
-import { parseISO, isBefore, isAfter } from "date-fns";
+import { parseISO, isBefore } from "date-fns";
 import Meetup from "../models/Meetup";
 
 class MeetupController {
