@@ -19,15 +19,17 @@ routes.use(authMiddleware);
 
 routes.put("/users", userController.update);
 routes.get("/users", userController.index);
+routes.get("/mymeetups", userController.myMeetups);
 
 routes.post("/meetups", meetupController.store);
-routes.get("/mymeetups", meetupController.myMeetups);
 routes.put("/meetups", meetupController.update);
 routes.delete("/meetups", meetupController.delete);
+routes.get("/meetups", meetupController.index);
 
 routes.post("/files", upload.single("file"), fileController.store);
 routes.get("/files", fileController.index);
 
 routes.post("/subscription", subscriptionController.store);
+routes.get("/subscription", subscriptionController.index);
 
 export default routes;

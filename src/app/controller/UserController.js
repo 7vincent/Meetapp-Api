@@ -1,4 +1,5 @@
 import * as Yup from "yup";
+import { isAfter } from "date-fns";
 import User from "../models/User";
 
 class UserController {
@@ -84,6 +85,21 @@ class UserController {
     const userAtualizado = await user.update(req.body);
 
     return res.json(userAtualizado);
+  }
+
+  async myMeetups(req, res) {
+    // Trazendo todos os meetups do user se inscreveu
+    const { meetups: meetups } = await User.findByPk(req.userId, {
+      include: {
+        association: "meetups"
+      }
+    });
+
+    const meetupsAtivos = meetups.filter(meetup => {
+      return isAfter(meetup.date, new Date());
+    });
+
+    return res.json(meetupsAtivos);
   }
 }
 
